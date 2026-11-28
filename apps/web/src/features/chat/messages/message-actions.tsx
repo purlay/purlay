@@ -20,9 +20,7 @@ import { useActions } from '../../../data/actions-provider';
 import { useJoinedChannel } from '../../../data/queries';
 import { useDescribeFailure } from '../../../data/failure';
 import { useI18n } from '../../../i18n/i18n-provider';
-import { Button } from '../../../ui/button';
 import { cn } from '../../../ui/cn';
-import { Dialog } from '../../../ui/dialog';
 import { IconButton } from '../../../ui/icon-button';
 import { Menu, MenuItem, MenuSeparator } from '../../../ui/menu';
 import { holdUnread, releaseUnread } from '../channel/use-mark-read';
@@ -31,7 +29,7 @@ import { authorOf } from '../../../lib/author';
 import { messageUrl } from './message-link';
 import { useDeferred } from '../../../app/deferred-door';
 import { useToast } from '../../../ui/toast';
-import { useContentPorts } from '../../content/content-ports';
+import { useCopier } from '../../content/content-ports';
 import { PinMenuItem, PinToggle } from '../pins/pin-toggle';
 import { ReminderMenuItem } from '../reminders/reminder-menu';
 import { SaveMenuItem, SaveToggle } from '../saved/save-toggle';
@@ -39,6 +37,7 @@ import { useWorkspaceIfAny } from '../../shell/workspace';
 import { holdRow } from './active-row';
 import { useEditing } from './editing';
 import { ReactMenu } from './reactions';
+import { ConfirmDialog } from '../../../ui/confirm-dialog';
 
 /** The list a row is drawn in: a menu opened from the row stays inside it, above the composer. */
 const LIST = '[data-message-list]';
@@ -166,7 +165,7 @@ const MoreMenu = ({
   const actions = useActions();
   const { remove, setKnowledge } = actions;
   const { show } = useToast();
-  const { copy } = useContentPorts();
+  const copyText = useCopier();
   const describe = useDescribeFailure();
   const { start } = useEditing();
   const copyLink = useCopyMessageLink();
@@ -226,14 +225,7 @@ const MoreMenu = ({
         <MenuItem
           glyph="copy"
           onSelect={() => {
-            copy(message.content).then(
-              () => {
-                show({ message: t('common.copied') });
-              },
-              () => {
-                show({ message: t('failure.copy') });
-              },
-            );
+            copyText(message.content);
           }}
         >
           {t('message.copyText')}
@@ -330,30 +322,15 @@ const MoreMenu = ({
       {deferred !== null && (
         <deferred.ReminderDialog message={message} open={reminding} onOpenChange={setReminding} />
       )}
-      <Dialog
+      <ConfirmDialog
         open={asking}
         onOpenChange={setAsking}
         title={t('message.deleteTitle')}
         description={t(moderating ? 'message.deleteBodyModerated' : 'message.deleteBody')}
-        closeLabel={t('common.close')}
-        footer={
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setAsking(false);
-              }}
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button variant="danger" glyph="delete" onClick={confirm}>
-              {t('message.delete')}
-            </Button>
-          </>
-        }
-      >
-        {null}
-      </Dialog>
+        confirmLabel={t('message.delete')}
+        confirmGlyph="delete"
+        onConfirm={confirm}
+      />
     </>
   );
 };

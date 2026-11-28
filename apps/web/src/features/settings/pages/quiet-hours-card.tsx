@@ -8,7 +8,7 @@
  */
 import { MINUTES_PER_DAY, type QuietHours } from '@purlay/types';
 import { useQueryClient } from '@tanstack/react-query';
-import { useId, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useApi } from '../../../data/api-provider';
 import { useDescribeFailure } from '../../../data/failure';
 import { keys } from '../../../data/keys';
@@ -19,7 +19,7 @@ import { Checkbox } from '../../../ui/checkbox';
 import { LoadingStatus, Skeleton } from '../../../ui/skeleton';
 import { useQuietHoursSetting } from '../../shell/quiet-hours';
 import { useWorkspace } from '../../shell/workspace';
-import { SaveOutcome, SettingsCard, SettingsRow } from '../page';
+import { SaveOutcome, SettingsCard, SettingsRow, cardBodyClasses } from '../page';
 
 /** What a new window starts as: weekday evenings, 19:00 to 09:00. */
 const SUGGESTED: QuietHours = { from: 19 * 60, to: 9 * 60, days: [1, 2, 3, 4, 5] };
@@ -55,11 +55,13 @@ export const QuietHoursCard = (): React.JSX.Element => {
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<{ ok: boolean; words: string } | null>(null);
 
+  const weekdayFormat = useMemo(
+    () => new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' }),
+    [locale],
+  );
   const dayName = (day: number): string =>
     // 2023-01-01 was a Sunday: its week names each day in the reader's language.
-    new Intl.DateTimeFormat(locale, { weekday: 'long', timeZone: 'UTC' }).format(
-      new Date(Date.UTC(2023, 0, 1 + day)),
-    );
+    weekdayFormat.format(new Date(Date.UTC(2023, 0, 1 + day)));
 
   const readFailure = setting.isError ? (
     <div className="flex flex-wrap items-center gap-3 px-6 py-5 max-narrow:px-4">
@@ -81,10 +83,7 @@ export const QuietHoursCard = (): React.JSX.Element => {
     return (
       <SettingsCard title={t('quietHours.title')} description={t('quietHours.description')}>
         {readFailure ?? (
-          <LoadingStatus
-            label={t('common.loading')}
-            className="flex flex-col gap-3 px-6 py-5 max-narrow:px-4"
-          >
+          <LoadingStatus label={t('common.loading')} className={cardBodyClasses}>
             <Skeleton />
           </LoadingStatus>
         )}

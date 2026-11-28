@@ -10,7 +10,7 @@
  * The person arranges it (D-195): the heading folds it, leaving what needs a look; they may have it
  * only-unread, without muted channels, and by activity instead of by name.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useDeferred } from '../../../app/deferred-door';
 import { useChannels } from '../../../data/queries';
 import { useI18n } from '../../../i18n/i18n-provider';
@@ -18,7 +18,7 @@ import { useRoute } from '../../../router/router-provider';
 import { Button } from '../../../ui/button';
 import { IconButton } from '../../../ui/icon-button';
 import { useWorkspace } from '../../shell/workspace';
-import { ChannelRow } from './channel-row';
+import { ChannelRows } from './channel-row';
 import { joinableChannels, joinedChannels, starredChannels } from '../../../lib/channel-lists';
 import { useSidebarPreferences } from './preferences-context';
 import { rowOf, shownRows, withToggled } from './preferences';
@@ -81,21 +81,35 @@ const ChannelList = ({
   );
   const currentId = match.name === 'channel' ? match.params.channelId : null;
   const { preferences, change } = useSidebarPreferences();
-  const knownGroups = new Set(groups.map((group) => group.id));
-  const allMine = joinedChannels(channels.data ?? [], preferences.channelOrder);
-  const mine = allMine.filter(
-    (channel) => channel.sidebarGroupId === null || !knownGroups.has(channel.sidebarGroupId),
-  );
   const collapsed = preferences.collapsed.includes('channels');
-  const shown = shownRows(
-    mine.map((channel) => ({ ...rowOf(channel), channel })),
-    {
-      collapsed,
-      unreadOnly: preferences.unreadOnly,
-      hideMuted: preferences.hideMuted,
-      currentId,
-    },
-  );
+  const { allMine, mine, shown } = useMemo(() => {
+    const knownGroups = new Set(groups.map((group) => group.id));
+    const joined = joinedChannels(channels.data ?? [], preferences.channelOrder);
+    const ungrouped = joined.filter(
+      (channel) => channel.sidebarGroupId === null || !knownGroups.has(channel.sidebarGroupId),
+    );
+    return {
+      allMine: joined,
+      mine: ungrouped,
+      shown: shownRows(
+        ungrouped.map((channel) => ({ ...rowOf(channel), channel })),
+        {
+          collapsed,
+          unreadOnly: preferences.unreadOnly,
+          hideMuted: preferences.hideMuted,
+          currentId,
+        },
+      ),
+    };
+  }, [
+    groups,
+    channels.data,
+    preferences.channelOrder,
+    preferences.unreadOnly,
+    preferences.hideMuted,
+    collapsed,
+    currentId,
+  ]);
   // In no channel at all is the empty state; in channels that are all starred is not (D-132).
   const none = allMine.length === 0 && starredChannels(channels.data ?? []).length === 0;
   // In none, but with public ones to join (an invited member arrives so): "create the first" would be untrue.
@@ -172,24 +186,11 @@ const ChannelList = ({
           />
         ) : (
           <>
-            <ul className="flex flex-col gap-1">
-              {shown.map(({ channel }) => (
-                <li key={channel.id}>
-                  <ChannelRow
-                    slug={workspace.slug}
-                    channel={channel}
-                    glyph={channel.type === 'private' ? 'private-channel' : 'channel'}
-                    current={channel.id === currentId}
-                    unread={(channel.state?.unreadCount ?? 0) > 0}
-                    mentions={channel.state?.unreadMentionCount ?? 0}
-                    incident={channel.incident}
-                    muted={channel.notificationLevel === 'none'}
-                  >
-                    {channel.name}
-                  </ChannelRow>
-                </li>
-              ))}
-            </ul>
+            <ChannelRows
+              slug={workspace.slug}
+              channels={shown.map((row) => row.channel)}
+              currentId={currentId}
+            />
             {/* Said once, where the asking was done, so an empty list is not mistaken for a failed one. */}
             {mine.length > 0 && shown.length === 0 && !collapsed ? (
               <p className="px-2 py-1 text-caption text-nav-ink-muted">

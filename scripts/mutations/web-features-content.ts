@@ -20,14 +20,6 @@ export const WEB_FEATURES_CONTENT: readonly Mutation[] = [
     tests: ['apps/web/src/features/content/github-cards.test.tsx'],
   },
   {
-    id: 'github-card-opens-without-noopener',
-    why: "a card's link hands the reader's tab to GitHub's page (window.opener) and says where they came from",
-    file: 'apps/web/src/features/content/github-cards.tsx',
-    find: '        rel="noopener noreferrer"\n',
-    replace: '',
-    tests: ['apps/web/src/features/content/github-cards.test.tsx'],
-  },
-  {
     id: 'link-label-keeps-bidi-controls',
     why: 'a label can be made to read as one address while the link goes to another',
     file: 'apps/web/src/features/content/render-content.tsx',

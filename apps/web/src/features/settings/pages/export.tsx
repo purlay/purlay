@@ -21,11 +21,17 @@ import { codeOf, failureKey, useDescribeFailure } from '../../../data/failure';
 import { keys } from '../../../data/keys';
 import { useI18n } from '../../../i18n/i18n-provider';
 import { RealtimePortsContext } from '../../../realtime/realtime-provider';
-import { browserSchedule } from '../../../realtime/socket';
+import { browserSchedule } from '../../../lib/schedule';
 import { Button } from '../../../ui/button';
 import { LoadingStatus, Skeleton } from '../../../ui/skeleton';
 import { useWorkspace } from '../../shell/workspace';
-import { SaveOutcome, SettingsCard } from '../page';
+import {
+  SaveOutcome,
+  SettingsCard,
+  cardNoteClasses,
+  cardPlainClasses,
+  cardRowClasses,
+} from '../page';
 
 /** How often the list is read again while an export is being made. */
 const EXPORT_POLL_MS = 3_000;
@@ -211,7 +217,7 @@ const ExportsCard = ({ source }: { readonly source: ExportSource }): React.JSX.E
       }
     >
       {exports.isError && (
-        <div className="flex items-center gap-3 px-6 py-5 max-narrow:px-4">
+        <div className={cardRowClasses}>
           <p className="min-w-0 flex-1 text-body text-ink-muted">{describe(exports.error)}</p>
           <Button
             busy={exports.isFetching}
@@ -225,12 +231,12 @@ const ExportsCard = ({ source }: { readonly source: ExportSource }): React.JSX.E
       )}
       {list === undefined ? (
         !exports.isError && (
-          <LoadingStatus label={t('common.loading')} className="px-6 py-5 max-narrow:px-4">
+          <LoadingStatus label={t('common.loading')} className={cardPlainClasses}>
             <Skeleton />
           </LoadingStatus>
         )
       ) : list.length === 0 ? (
-        <p className="px-6 py-5 text-body text-ink-muted max-narrow:px-4">{words.empty}</p>
+        <p className={cardNoteClasses}>{words.empty}</p>
       ) : (
         <ul aria-label={t('export.list')} className="flex flex-col">
           {list.map((made) => (

@@ -8,6 +8,7 @@
  * survives colour-blindness and a screen reader hears it as the word "unread" before the
  * name rather than as a typographic accident.
  */
+import { memo } from 'react';
 import type { Channel, ChannelIncident } from '@purlay/types';
 import { Icon, type GlyphName } from '../../../components/icon';
 import { useI18n } from '../../../i18n/i18n-provider';
@@ -110,7 +111,7 @@ interface ChannelLinkProps extends RowContentProps {
  * A row that opens a conversation the person is already in. A right click, Shift+F10 or a long press
  * opens its context menu (D-165); the menu says it exists only by opening, as a desktop's does.
  */
-export const ChannelRow = ({
+const ChannelRowView = ({
   slug,
   channel,
   current,
@@ -133,6 +134,44 @@ export const ChannelRow = ({
     </>
   );
 };
+
+/**
+ * Held while its props are: the list gives each row a channel that keeps its identity until that channel itself
+ * changes, and every new message in the workspace moves the list, so without this each one redrew every row.
+ */
+export const ChannelRow = memo(ChannelRowView);
+
+/** The rows of a list of channels: the glyph by kind and what is unread, muted or on fire, said once for every list. */
+export const ChannelRows = ({
+  slug,
+  channels,
+  currentId,
+  id,
+}: {
+  readonly slug: string;
+  readonly channels: readonly Channel[];
+  readonly currentId: string | null;
+  readonly id?: string;
+}): React.JSX.Element => (
+  <ul {...(id === undefined ? {} : { id })} className="flex flex-col gap-1">
+    {channels.map((channel) => (
+      <li key={channel.id}>
+        <ChannelRow
+          slug={slug}
+          channel={channel}
+          glyph={channel.type === 'private' ? 'private-channel' : 'channel'}
+          current={channel.id === currentId}
+          unread={(channel.state?.unreadCount ?? 0) > 0}
+          mentions={channel.state?.unreadMentionCount ?? 0}
+          incident={channel.incident}
+          muted={channel.notificationLevel === 'none'}
+        >
+          {channel.name}
+        </ChannelRow>
+      </li>
+    ))}
+  </ul>
+);
 
 interface ActionRowProps extends Omit<RowContentProps, 'current'> {
   readonly onClick: () => void;
